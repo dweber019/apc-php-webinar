@@ -1,0 +1,10 @@
+{
+  "generator-reveal": {
+    "presentationTitle": "Application Cloud - PHP",
+    "packageVersion": "0.0.1",
+    "useSass": true,
+    "deployToGithubPages": true,
+    "githubUsername": "dweber019",
+    "githubRepository": "apc-php"
+  }
+}
