@@ -1,1 +1,2 @@
-# apc-php-webinar
+## If you like to run this locally use
+php -S 127.0.0.1:8000 -t ./ .htrouter.php

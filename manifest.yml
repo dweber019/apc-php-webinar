@@ -1,0 +1,9 @@
+---
+applications:
+- name: webinar-phalcon
+  memory: 1G
+  instances: 1
+  buildpack: https://github.com/cloudfoundry/php-buildpack.git
+
+  services:
+  - webinar-db
