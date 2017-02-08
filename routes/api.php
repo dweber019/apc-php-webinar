@@ -25,3 +25,8 @@ Route::get('/robots', function (Request $request) {
     $result = \Illuminate\Support\Facades\DB::table('robots')->get();
     return response()->json($result );
 });
+
+Route::get('/cron', function (Request $request) {
+    $result = \Illuminate\Support\Facades\Artisan::call('schedule:run');
+    return response()->json((object)array("exitCode" => $result));
+});
