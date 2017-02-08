@@ -1,5 +1,26 @@
 <?php
 
+$cfEnv = getenv('VCAP_SERVICES');
+if ($cfEnv !== false) {
+  try {
+    $vcapServices = json_decode(getenv('VCAP_SERVICES'));
+    $mariaDbConnection = head($vcapServices->mariadb)->credentials;
+
+    $_ENV['DB_CONNECTION'] = 'mysql';
+    $_ENV['DB_HOST'] = $mariaDbConnection->host;
+    $_ENV['DB_PORT'] = $mariaDbConnection->port;
+    $_ENV['DB_DATABASE'] = $mariaDbConnection->database;
+    $_ENV['DB_USERNAME'] = $mariaDbConnection->username;
+    $_ENV['DB_PASSWORD'] = $mariaDbConnection->password;
+    $_ENV['APP_ENV'] = 'production';
+    $_ENV['APP_DEBUG'] = 'false';
+    $_ENV['APP_KEY'] = 'CFENV!!!';
+  }
+  catch (Exception $e) {
+    dd($e->getMessage());
+  }
+}
+
 return [
 
     /*
