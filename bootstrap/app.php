@@ -17,6 +17,20 @@ $app = new Illuminate\Foundation\Application(
 
 /*
 |--------------------------------------------------------------------------
+| Extend monolog
+|--------------------------------------------------------------------------
+|
+*/
+
+$app->configureMonologUsing(function ($monolog) {
+    $monolog->pushHandler(new \Monolog\Handler\ErrorLogHandler());
+    $handler = new \Monolog\Handler\LogglyHandler('bd73fa3d-b995-4dc6-904a-2b6b7c412788' ,\Monolog\Logger::DEBUG);
+    $handler->setTag('Webinar Laravel');
+    $monolog->pushHandler($handler);
+});
+
+/*
+|--------------------------------------------------------------------------
 | Bind Important Interfaces
 |--------------------------------------------------------------------------
 |

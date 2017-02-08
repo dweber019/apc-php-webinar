@@ -30,3 +30,8 @@ Route::get('/cron', function (Request $request) {
     $result = \Illuminate\Support\Facades\Artisan::call('schedule:run');
     return response()->json((object)array("exitCode" => $result));
 });
+
+Route::get('/console', function(Request $request) {
+    Log::info('Wuhuuu... we are logging - ' . $request->url());
+    return response()->json((object)array("logging" => $request->url()));
+});
