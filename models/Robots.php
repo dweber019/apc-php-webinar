@@ -19,7 +19,6 @@ class Robots extends Model
                     "domain" => [
                         "droid",
                         "mechanical",
-                        "virtual",
                     ]
                 ]
             )

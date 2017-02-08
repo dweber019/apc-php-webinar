@@ -1,5 +1,5 @@
 {
 	"WEBDIR": "",
   	"PHP_VERSION": "{PHP_70_LATEST}",
-    "PHP_EXTENSIONS": ["phalcon"]
+    "PHP_EXTENSIONS": ["phalcon", "pdo", "pdo_mysql"]
 }

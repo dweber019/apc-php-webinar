@@ -19,15 +19,31 @@ $loader->register();
 $di = new FactoryDefault();
 
 // Set up the database service
+if (isset($_ENV['VCAP_SERVICES'])) {
+    try {
+        $vcapServices = json_decode($_ENV['VCAP_SERVICES']);
+        $mariaDbConnection = $vcapServices->mariadb[0]->credentials;
+
+        $_ENV['DB_HOST'] = $mariaDbConnection->host;
+        $_ENV['DB_PORT'] = $mariaDbConnection->port;
+        $_ENV['DB_DATABASE'] = $mariaDbConnection->database;
+        $_ENV['DB_USERNAME'] = $mariaDbConnection->username;
+        $_ENV['DB_PASSWORD'] = $mariaDbConnection->password;
+    }
+    catch (Exception $e) {
+        dd($e->getMessage());
+    }
+}
+
 $di->set(
     "db",
     function () {
         return new PdoMysql(
             [
-                "host"     => "127.0.0.1",
-                "username" => "root",
-                "password" => "root",
-                "dbname"   => "toys",
+                "host"     => $_ENV['DB_HOST'],
+                "username" => $_ENV['DB_USERNAME'],
+                "password" => $_ENV['DB_PASSWORD'],
+                "dbname"   => $_ENV['DB_DATABASE'],
             ]
         );
     }
@@ -42,7 +58,13 @@ $app->get(
     function () use ($app) {
         $phql = "SELECT * FROM Store\\Toys\\Robots ORDER BY name";
 
-        $robots = $app->modelsManager->executeQuery($phql);
+        try {
+            $robots = $app->modelsManager->executeQuery($phql);
+        }
+        catch (Exception $e) {
+            echo $e;
+            exit;
+        }
 
         $data = [];
 
