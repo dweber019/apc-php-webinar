@@ -17,7 +17,7 @@ class CreateRobotsTable extends Migration
             $table->increments('id');
             $table->string('name');
             $table->string('year');
-            $table->enum('type', [ 'droid', 'mechanical', 'virtual' ]);
+            $table->enum('type', [ 'droid', 'mechanical' ]);
             $table->timestamps();
         });
     }
