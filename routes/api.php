@@ -20,3 +20,8 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 Route::get('/environment', function (Request $request) {
     return response()->json($_ENV);
 });
+
+Route::get('/robots', function (Request $request) {
+    $result = \Illuminate\Support\Facades\DB::table('robots')->get();
+    return response()->json($result );
+});
