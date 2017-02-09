@@ -7,3 +7,4 @@ applications:
 
   services:
   - webinar-db
+  - webinar-elk

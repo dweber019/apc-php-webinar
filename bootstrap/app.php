@@ -23,7 +23,11 @@ $app = new Illuminate\Foundation\Application(
 */
 
 $app->configureMonologUsing(function ($monolog) {
+
+    // Logs to the CF Console
     $monolog->pushHandler(new \Monolog\Handler\ErrorLogHandler());
+
+    // Logs to Loggly
     $handler = new \Monolog\Handler\LogglyHandler('bd73fa3d-b995-4dc6-904a-2b6b7c412788' ,\Monolog\Logger::DEBUG);
     $handler->setTag('Webinar Laravel');
     $monolog->pushHandler($handler);
