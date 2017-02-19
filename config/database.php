@@ -12,9 +12,9 @@ if ($cfEnv !== false) {
     $_ENV['DB_DATABASE'] = $mariaDbConnection->database;
     $_ENV['DB_USERNAME'] = $mariaDbConnection->username;
     $_ENV['DB_PASSWORD'] = $mariaDbConnection->password;
-    $_ENV['APP_ENV'] = 'production';
-    $_ENV['APP_DEBUG'] = 'false';
-    $_ENV['APP_KEY'] = 'CFENV!!!';
+    $_ENV['APP_ENV'] = $_ENV['APP_ENV'] ?? 'production';
+    $_ENV['APP_DEBUG'] = $_ENV['APP_DEBUG'] ?? 'false';
+    $_ENV['APP_KEY'] = $_ENV['APP_KEY'] ?? 'CFENV!!!';
   }
   catch (Exception $e) {
     dd($e->getMessage());
