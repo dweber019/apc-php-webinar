@@ -1,12 +1,3 @@
-<p align="center"><img src="https://laravel.com/assets/img/components/logo-laravel.svg"></p>
-
-<p align="center">
-<a href="https://travis-ci.org/laravel/framework"><img src="https://travis-ci.org/laravel/framework.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://poser.pugx.org/laravel/framework/d/total.svg" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://poser.pugx.org/laravel/framework/v/stable.svg" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://poser.pugx.org/laravel/framework/license.svg" alt="License"></a>
-</p>
-
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable, creative experience to be truly fulfilling. Laravel attempts to take the pain out of development by easing common tasks used in the majority of web projects, such as:
@@ -21,28 +12,202 @@ Laravel is a web application framework with expressive, elegant syntax. We belie
 
 Laravel is accessible, yet powerful, providing tools needed for large, robust applications. A superb combination of simplicity, elegance, and innovation give you tools you need to build any application with which you are tasked.
 
-## Learning Laravel
+## Installing Laravel
+Presequisites are:
+- PHP installed (e.g. with Homebrew)
+- Composer installed (e.g. with Homebrew)
+- Cloud Foundry CLI installed ([CLI doc](https://docs.developer.swisscom.com/cf-cli/))
 
-Laravel has the most extensive and thorough documentation and video tutorial library of any modern web application framework. The [Laravel documentation](https://laravel.com/docs) is thorough, complete, and makes it a breeze to get started learning the framework.
+Now to install Laravel open the ```terminal``` and go to a folder of your choise. Enter command below into the ```terminal``` and see the magic:
+```bash
+composer create-project --prefer-dist laravel/laravel <project-name>
+```
+This command as setup a full installation of Laravel.
 
-If you're not in the mood to read, [Laracasts](https://laracasts.com) contains over 900 video tutorials on a range of topics including Laravel, modern PHP, unit testing, JavaScript, and more. Boost the skill level of yourself and your entire team by digging into our comprehensive video library.
+## Manifest - Make it ready for Cloud Foundry
+Next we setup the ```manifest.yaml``` file, which will describe our app. You can read more about manifests [here](https://docs.developer.swisscom.com/devguide/deploy-apps/manifest.html).
 
-## Contributing
+Create a file named ```manifest.yaml``` in the root of you project with these content:
+```yaml
+---
+applications:
+- name: <application-name>
+  memory: 1G
+  instances: 1
+  buildpack: https://github.com/cloudfoundry/php-buildpack.git
+```
+Be carefully the application name may already exsist or at least the route.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](http://laravel.com/docs/contributions).
+## .cfignore - Push only things you should
+As we already have a nice ```.gitignore``` we should have also a ```.cfignore``` as we don't like to pushing stuff which is dependent to our local setup. Add the file ```.cfignore``` to your
+project root:
+```
+/node_modules
+/public/storage
+/public/hot
+/storage/*.key
+/vendor
+/.idea
+Homestead.json
+Homestead.yaml
+.env
+```
+This is acutally the same content as in ```.gitignore``` so you can also copy/rename ```.gitignore```
 
-## Security Vulnerabilities
+## Testing your setup
+Now let's test if we don't anything right. Add the following line of code in ```routes/api.php``` to verify we have access to the Cloud Foundry environmental variables:
+```php
+Route::get('/environment', function (Request $request) {
+    return response()->json($_ENV);
+});
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell at taylor@laravel.com. All security vulnerabilities will be promptly addressed.
+Now let push this by executing this command in the ```terminal```:
+```bash
+cf push
+```
 
-## License
+> Caugtion: Uncomment the above lines asap after validation, as these lines expose sentitive information (e.g. Your service credentials)
 
-The Laravel framework is open-sourced software licensed under the [MIT license](http://opensource.org/licenses/MIT).
+## Integrate mariaDB as service
+Fist things first. Add a mariaDB servie to the application cloud like [this](https://docs.developer.swisscom.com/console/services.html).
 
-## CF on ssh
+Next we add the service to our ```manifest.yaml```. This will auto bind the service to our application. After the change the file should look like this:
+```yaml
+---
+applications:
+- name: <application-name>
+  memory: 1G
+  instances: 1
+  buildpack: https://github.com/cloudfoundry/php-buildpack.git
+
+  services:
+  - <service-name>
+```
+
+Next we edit ```config/database.php``` to retreive the mariaDB information and pass them to Laravel.
+
+Add these line of codes to very top of the file:
+```php
+$cfEnv = getenv('VCAP_SERVICES');
+if ($cfEnv !== false) {
+  try {
+    $vcapServices = json_decode(getenv('VCAP_SERVICES'));
+    $mariaDbConnection = head($vcapServices->mariadb)->credentials;
+
+    $_ENV['DB_CONNECTION'] = 'mysql';
+    $_ENV['DB_HOST'] = $mariaDbConnection->host;
+    $_ENV['DB_PORT'] = $mariaDbConnection->port;
+    $_ENV['DB_DATABASE'] = $mariaDbConnection->database;
+    $_ENV['DB_USERNAME'] = $mariaDbConnection->username;
+    $_ENV['DB_PASSWORD'] = $mariaDbConnection->password;
+    $_ENV['APP_ENV'] = $_ENV['APP_ENV'] ?? 'production';
+    $_ENV['APP_DEBUG'] = $_ENV['APP_ENV'] ?? 'false';
+    $_ENV['APP_KEY'] = $_ENV['APP_ENV'] ?? 'CFENV!!!';
+  }
+  catch (Exception $e) {
+    dd($e->getMessage());
+  }
+}
+```
+
+After this change we have the mariaDB information on the root level of our environmentals variables, just the way Laravel is used to it. Doing it this way ensurse the standart way of
+local development with Laravel (see ```.env``` handling).
+
+As the PHP Buildpack can't handle the helper method ```env(...)``` during staging we have to fix this in ```config/database.php```. Replace the ```mysql``` config so it looks like this:
+```php
+'mysql' => [
+    'driver' => 'mysql',
+    'host' => $_ENV['DB_HOST'] ?? '127.0.0.1',
+    'port' => $_ENV['DB_PORT'] ?? '3306',
+    'database' => $_ENV['DB_DATABASE'] ?? 'forge',
+    'username' => $_ENV['DB_USERNAME'] ?? 'forge',
+    'password' => $_ENV['DB_PASSWORD'] ?? '',
+    'charset' => 'utf8mb4',
+    'collation' => 'utf8mb4_unicode_ci',
+    'prefix' => '',
+    'strict' => true,
+    'engine' => null,
+],
+```
+Just replacing ```env(...)``` with ```$_ENV[...]``` and some PHP 7 fallback handling with ```??```.
+
+## Migrations
+Luckly for us Laravel provides some nice commands to scaffold a migration for use. Execute ```php artisan make:migration create_robots_table --create=robots```. This will produce
+a migration file in ```database/migrations``` for robots with a table ```robots```. Now modify the schema in this new file to look like this:
+```php
+Schema::create('robots', function (Blueprint $table) {
+    $table->increments('id');
+    $table->string('name');
+    $table->string('year');
+    $table->enum('type', [ 'droid', 'mechanical' ]);
+    $table->timestamps();
+});
+```
+
+New let's add a composer script to automatically run migrations after each ```cf push```. For this edit the composer script to look like this:
+```json
+"post-install-cmd": [
+    "Illuminate\\Foundation\\ComposerScripts::postInstall",
+    "php artisan optimize",
+    "php artisan migrate --force"
+],
+```
+Now we can run ```cf push``` and our database will be migrated every time we ```cf push```.
+
+> Caugtion: Normal I don't do migrations automated with composer. Migrations should be handled manually or a CI will perform the task. This is just for simplicity or development.
+
+## Seeding test data
+As it's pretty useless to have an API without any data we will setup a seeder to have some nice test data to seed. Run this command to scaffold a seeder
+```php artisan make:seeder RobotsTableSeeder```. This will produce a file in ```database/seeds```. Now let add some test data. Add these line of code to our new file in method ```run()```
+```php
+DB::table('robots')->insert([
+  'name' => 'R2D2',
+  'year' => '2016',
+  'type' => 'droid',
+  'created_at' => \Carbon\Carbon::now(),
+  'updated_at' => \Carbon\Carbon::now()
+]);
+
+DB::table('robots')->insert([
+  'name' => 'B2-RP',
+  'year' => '1999',
+  'type' => 'mechanical',
+  'created_at' => \Carbon\Carbon::now(),
+  'updated_at' => \Carbon\Carbon::now()
+]);
+
+DB::table('robots')->insert([
+  'name' => 'E-XD',
+  'year' => '2000',
+  'type' => 'droid',
+  'created_at' => \Carbon\Carbon::now(),
+  'updated_at' => \Carbon\Carbon::now()
+]);
+```
+
+Now we have to register the this seeder in ```database/seeds/DatabaseSeeder.php``` by adding this line to method ```run()```:
+```php
+$this->call(RobotsTableSeeder::class);
+```
+
+## Use ssh to perform operation tasks - seeding data
+
 cf ssh <app-name>
 
 export PATH=$PATH:/home/vcap/app/php/bin
 
 php --ini
 export PHPRC=/home/vcap/app/php/etc/php.ini
+
+## FAQ
+### How to set the ciphers key
+Set a user-provided environmental variable named ```APP_KEY``` for your application ([doc](https://docs.developer.swisscom.com/devguide/deploy-apps/environment-variable.html#USER)). Laravel will automatically pick this up.
+You can generate a new key with ```php artisan key:generate```.
+### MariaDB String length
+As we are using mariaDB, the string length is pretty small and doesn't suite Laravel. To fix this add this line of code to the ```boot``` method in file
+```app/Providers/AppServiceProviders.php```:
+```php
+Schema::defaultStringLength(191);
+```
+Remember to import/use the ```Schema``` facade.
