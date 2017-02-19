@@ -24,6 +24,11 @@ composer create-project --prefer-dist laravel/laravel <project-name>
 ```
 This command as setup a full installation of Laravel.
 
+You can run your application locally with this command:
+```bash
+php -S 127.0.0.1:8000 -t public
+```
+
 ## Manifest - Make it ready for Cloud Foundry
 Next we setup the ```manifest.yaml``` file, which will describe our app. You can read more about manifests [here](https://docs.developer.swisscom.com/devguide/deploy-apps/manifest.html).
 
@@ -37,6 +42,19 @@ applications:
   buildpack: https://github.com/cloudfoundry/php-buildpack.git
 ```
 Be carefully the application name may already exsist or at least the route.
+
+## PHP configuration
+The Buildpack allows use to configure the PHP environment and we should definitly do this as we need some extension and have to set the composer vendor dir. Create the file
+```.bp-config/options.json``` in the root of your project and enter this json:
+```json
+{
+  "LIBDIR": "",
+  "WEBDIR": "public",
+  "PHP_VERSION": "{PHP_71_LATEST}",
+  "PHP_EXTENSIONS": [ "bz2", "zlib", "openssl", "fpm", "tokenizer", "curl", "mcrypt", "mbstring", "pdo", "pdo_mysql"]
+}
+```
+You can find more options about the PHP Build pack [here](https://docs.developer.swisscom.com/buildpacks/php/index.html).
 
 ## .cfignore - Push only things you should
 As we already have a nice ```.gitignore``` we should have also a ```.cfignore``` as we don't like to pushing stuff which is dependent to our local setup. Add the file ```.cfignore``` to your
