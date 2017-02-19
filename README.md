@@ -18,7 +18,7 @@ Presequisites are:
 - Composer installed (e.g. with Homebrew)
 - Cloud Foundry CLI installed ([CLI doc](https://docs.developer.swisscom.com/cf-cli/))
 
-Now to install Laravel open the ```terminal``` and go to a folder of your choise. Enter command below into the ```terminal``` and see the magic:
+Now to install Laravel open the ```terminal``` and go to a folder of your choice. Enter command below into the ```terminal``` and see the magic:
 ```bash
 composer create-project --prefer-dist laravel/laravel <project-name>
 ```
@@ -70,7 +70,7 @@ cf push
 > Caugtion: Uncomment the above lines asap after validation, as these lines expose sentitive information (e.g. Your service credentials)
 
 ## Integrate mariaDB as service
-Fist things first. Add a mariaDB servie to the application cloud like [this](https://docs.developer.swisscom.com/console/services.html).
+First things first. Add a mariaDB service to the application cloud like [this](https://docs.developer.swisscom.com/console/services.html).
 
 Next we add the service to our ```manifest.yaml```. This will auto bind the service to our application. After the change the file should look like this:
 ```yaml
@@ -87,7 +87,7 @@ applications:
 
 Next we edit ```config/database.php``` to retreive the mariaDB information and pass them to Laravel.
 
-Add these line of codes to very top of the file:
+Add these lines of codes to very top of the file:
 ```php
 $cfEnv = getenv('VCAP_SERVICES');
 if ($cfEnv !== false) {
@@ -111,7 +111,7 @@ if ($cfEnv !== false) {
 }
 ```
 
-After this change we have the mariaDB information on the root level of our environmentals variables, just the way Laravel is used to it. Doing it this way ensurse the standart way of
+After this change we have the mariaDB information on the root level of our environmental variables, just the way Laravel is used to it. Doing it this way ensures the standard way of
 local development with Laravel (see ```.env``` handling).
 
 As the PHP Buildpack can't handle the helper method ```env(...)``` during staging we have to fix this in ```config/database.php```. Replace the ```mysql``` config so it looks like this:
@@ -133,7 +133,7 @@ As the PHP Buildpack can't handle the helper method ```env(...)``` during stagin
 Just replacing ```env(...)``` with ```$_ENV[...]``` and some PHP 7 fallback handling with ```??```.
 
 ## Migrations
-Luckly for us Laravel provides some nice commands to scaffold a migration for use. Execute ```php artisan make:migration create_robots_table --create=robots```. This will produce
+Luckily for us Laravel provides some nice commands to scaffold a migration for use. Execute ```php artisan make:migration create_robots_table --create=robots```. This will produce
 a migration file in ```database/migrations``` for robots with a table ```robots```. Now modify the schema in this new file to look like this:
 ```php
 Schema::create('robots', function (Blueprint $table) {
@@ -155,10 +155,10 @@ New let's add a composer script to automatically run migrations after each ```cf
 ```
 Now we can run ```cf push``` and our database will be migrated every time we ```cf push```.
 
-> Caugtion: Normal I don't do migrations automated with composer. Migrations should be handled manually or a CI will perform the task. This is just for simplicity or development.
+> Caution: Normal I don't do migrations automated with composer. Migrations should be handled manually or a CI will perform the task. This is just for simplicity or development.
 
 ## Seeding test data
-As it's pretty useless to have an API without any data we will setup a seeder to have some nice test data to seed. Run this command to scaffold a seeder
+As it's useless to have an API without any data we will setup a seeder to have some nice test data to seed. Run this command to scaffold a seeder
 ```php artisan make:seeder RobotsTableSeeder```. This will produce a file in ```database/seeds```. Now let add some test data. Add these line of code to our new file in method ```run()```
 ```php
 DB::table('robots')->insert([
@@ -191,23 +191,86 @@ Now we have to register the this seeder in ```database/seeds/DatabaseSeeder.php`
 $this->call(RobotsTableSeeder::class);
 ```
 
-## Use ssh to perform operation tasks - seeding data
+## Use SSH to perform operation tasks - e.g. seeding data
+As we should not seed test data automatically we can do this manually with Cloud Foundry.
 
-cf ssh <app-name>
-
+There for we are using ```cf ssh <app-name>``` to get access to our app. Once logged in via SSH we must configure PHP for CLI useage. We do this by executing
+these command:
+```bash
 export PATH=$PATH:/home/vcap/app/php/bin
-
-php --ini
 export PHPRC=/home/vcap/app/php/etc/php.ini
+```
+
+We can verify that the right ```php.ini``` is used with command ```php --ini```.
+
+Now as we have PHP configured as it's would be when accessing over HTTP we can execute any ```artisan``` command we like. Let's seed our data base with:
+```php
+php artisan db:seed
+```
+
+> Tip: Have a look at ```php artisan``` to see other tasks
+
+## Background jobs
+As Laravel has a impressive background job processing engine (this engine also handles queued email), we like to have this but Cloud Foundry has no ```cron``` jobs ability.
+
+A solution I like to implement is to trigger the background job over API. To do this add the below code to ```routes/api.php```:
+```php
+Route::get('/cron', function (Request $request) {
+    $result = \Illuminate\Support\Facades\Artisan::call('schedule:run');
+    return response()->json((object)array("exitCode" => $result));
+});
+```
+
+This will expose the ```php artisan schedule:run``` command over API. Now I could setup Jenkins to call this every minute or so.
+
+> Tip: Protect this API endpoint.
+
+> You can also use [this](https://github.com/18F/cg-cron) repo to run recurring jobs.
+
+## Loggin to CF
+By default, Cloud Foundry logs all http calls to the console. But what if we like to log our application logs to this console.
+Nothing simpler than that. Go to file ```bootstrap/app.php``` and add these the below lines after the ```Create The Application``` block:
+```php
+/*
+|--------------------------------------------------------------------------
+| Extend monolog
+|--------------------------------------------------------------------------
+|
+*/
+
+$app->configureMonologUsing(function ($monolog) {
+    // Logs to the CF Console
+    $monolog->pushHandler(new \Monolog\Handler\ErrorLogHandler());
+});
+```
+
+Now we could even add an [ELK](https://docs.developer.swisscom.com/service-offerings/elk.html) service and the good thing is that it works out of the box as every log entry in the Cloud
+Foundry console also will be logged to ELK by default.
 
 ## FAQ
 ### How to set the ciphers key
 Set a user-provided environmental variable named ```APP_KEY``` for your application ([doc](https://docs.developer.swisscom.com/devguide/deploy-apps/environment-variable.html#USER)). Laravel will automatically pick this up.
 You can generate a new key with ```php artisan key:generate```.
 ### MariaDB String length
-As we are using mariaDB, the string length is pretty small and doesn't suite Laravel. To fix this add this line of code to the ```boot``` method in file
+As we are using mariaDB, the string length is small and doesn't suite Laravel. To fix this add this line of code to the ```boot``` method in file
 ```app/Providers/AppServiceProviders.php```:
 ```php
 Schema::defaultStringLength(191);
 ```
 Remember to import/use the ```Schema``` facade.
+### Use an external logging provider (Loggly)
+Also [Loggly](https://www.loggly.com/) can be integrated easily. Add the below code to ```boostrap/app.php``` after the ```Create The Application``` block:
+```php
+/*
+|--------------------------------------------------------------------------
+| Extend monolog
+|--------------------------------------------------------------------------
+|
+*/
+
+$app->configureMonologUsing(function ($monolog) {
+    $handler = new \Monolog\Handler\LogglyHandler('<your-api-key>' ,\Monolog\Logger::DEBUG);
+    $handler->setTag('Webinar Laravel');
+    $monolog->pushHandler($handler);
+});
+```
