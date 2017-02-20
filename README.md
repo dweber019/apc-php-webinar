@@ -1,4 +1,5 @@
-# apc-php-webinar
+# PHP - Webinar
+## Swisscom Application Cloud
 
 The repository has two branches with sample applications and one presentation branch:
 - [laravel54](https://github.com/dweber019/apc-php-webinar/tree/laravel) (Cloud Foundry ready)
