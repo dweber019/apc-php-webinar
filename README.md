@@ -73,7 +73,7 @@ Homestead.yaml
 This is acutally the same content as in ```.gitignore``` so you can also copy/rename ```.gitignore```
 
 ## Testing your setup
-Now let's test if we don't anything right. Add the following line of code in ```routes/api.php``` to verify we have access to the Cloud Foundry environmental variables:
+Now let's test our setup. Add the following route in ```routes/api.php``` to verify we have access to the Cloud Foundry environmental variables:
 ```php
 Route::get('/environment', function (Request $request) {
     return response()->json($_ENV);
@@ -87,8 +87,8 @@ cf push
 
 > Caugtion: Uncomment the above lines asap after validation, as these lines expose sentitive information (e.g. Your service credentials)
 
-## Integrate mariaDB as service
-First things first. Add a mariaDB service to the application cloud like [this](https://docs.developer.swisscom.com/console/services.html).
+## Bind mariaDB as service
+First things first. Create a mariaDB service to the application cloud like [this](https://docs.developer.swisscom.com/console/services.html).
 
 Next we add the service to our ```manifest.yaml```. This will auto bind the service to our application. After the change the file should look like this:
 ```yaml
@@ -105,7 +105,7 @@ applications:
 
 Next we edit ```config/database.php``` to retreive the mariaDB information and pass them to Laravel.
 
-Add these lines of codes to very top of the file:
+Add these lines of codes to the very top of the file:
 ```php
 $cfEnv = getenv('VCAP_SERVICES');
 if ($cfEnv !== false) {
@@ -173,11 +173,11 @@ New let's add a composer script to automatically run migrations after each ```cf
 ```
 Now we can run ```cf push``` and our database will be migrated every time we ```cf push```.
 
-> Caution: Normal I don't do migrations automated with composer. Migrations should be handled manually or a CI will perform the task. This is just for simplicity or development.
+> Caution: Normally I don't do migrations automated with composer. Migrations should be handled manually or a CI will perform the task. This is just for simplicity or development.
 
 ## Seeding test data
-As it's useless to have an API without any data we will setup a seeder to have some nice test data to seed. Run this command to scaffold a seeder
-```php artisan make:seeder RobotsTableSeeder```. This will produce a file in ```database/seeds```. Now let add some test data. Add these line of code to our new file in method ```run()```
+As it's useless to have an API without any data we will setup a seeder to have nice test data. Run this command to scaffold a seeder
+```php artisan make:seeder RobotsTableSeeder```. This will produce a file in ```database/seeds```. Now let add test data. Add these lines of codes to our new file in method ```run()```
 ```php
 DB::table('robots')->insert([
   'name' => 'R2D2',
@@ -226,12 +226,12 @@ Now as we have PHP configured as it's would be when accessing over HTTP we can e
 php artisan db:seed
 ```
 
-> Tip: Have a look at ```php artisan``` to see other tasks
+> Tip: Execute ```php artisan``` in the ```terminal``` to see other tasks
 
-## Background jobs
-As Laravel has a impressive background job processing engine (this engine also handles queued email), we like to have this but Cloud Foundry has no ```cron``` jobs ability.
+## Task Scheduling / Cron jobs
+As Laravel has a impressive task scheduling and processing engine (this engine also handles queued email), we like to have this but Cloud Foundry has no ```cron``` jobs ability.
 
-A solution I like to implement is to trigger the background job over API. To do this add the below code to ```routes/api.php```:
+A solution I like to implement is to trigger the entry job over API. To do this add the below code to ```routes/api.php```:
 ```php
 Route::get('/cron', function (Request $request) {
     $result = \Illuminate\Support\Facades\Artisan::call('schedule:run');
