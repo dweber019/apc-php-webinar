@@ -228,6 +228,16 @@ php artisan db:seed
 
 > Tip: Execute ```php artisan``` in the ```terminal``` to see other tasks
 
+## Exposing data over API
+Now let's expose the robots data over ```/api/robots```. Therefor open ```routes/api.php``` and this as route:
+```php
+Route::get('/robots', function (Request $request) {
+    $result = \Illuminate\Support\Facades\DB::table('robots')->get();
+    return response()->json($result );
+});
+```
+Now we can visit ```/api/robots``` and will get the robots as json.
+
 ## Task Scheduling / Cron jobs
 As Laravel has a impressive task scheduling and processing engine (this engine also handles queued email), we like to have this but Cloud Foundry has no ```cron``` jobs ability.
 
