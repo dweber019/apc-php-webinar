@@ -280,8 +280,7 @@ Foundry console also will be logged to ELK by default.
 Set a user-provided environmental variable named ```APP_KEY``` for your application ([doc](https://docs.developer.swisscom.com/devguide/deploy-apps/environment-variable.html#USER)). Laravel will automatically pick this up.
 You can generate a new key with ```php artisan key:generate```.
 ### MariaDB String length
-As we are using mariaDB, the string length is small and doesn't suite Laravel. To fix this add this line of code to the ```boot``` method in file
-```app/Providers/AppServiceProviders.php```:
+As we are using mariaDB, the string length is small and doesn't suite Laravel. To fix this add this line of code to the ```boot``` method in file ```app/Providers/AppServiceProviders.php```:
 ```php
 Schema::defaultStringLength(191);
 ```
